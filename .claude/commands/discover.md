@@ -49,4 +49,11 @@ OUTPUT FORMAT:
     - Counter-example: The one where...
     - Questions: ...
 
+5. Present the open questions to the user, one at a time.
+   For each question, provide an interactive dropdown list of 3-4 sensible options, plus a final option: Something else
+6. When the user has answered the questions, fold the answers into rules and examples. Remove the questions section.
+   No unresolved questions in the final spec.
+7. Present the complete spec for review. Do not save until the user approves.
+
+
 Save the result to doc/specs/<feature>.md
