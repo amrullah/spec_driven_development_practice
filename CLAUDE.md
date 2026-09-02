@@ -1,53 +1,91 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Project
 
-## What this repository is
+SpringBoot microservice implementing a Cashback Rewards solution.
 
-A practice project for Spec Driven Development in Claude Code, built around a
-`cashback-reward-service` Spring Boot application. The specs currently lead the code:
-`doc/specs/` holds finished feature specs, while `src/` is still the generated
-Spring Boot skeleton (`CashbackRewardServiceApplication` plus a `contextLoads` test).
-Expect to be implementing against a spec rather than extending existing domain code.
+## Build & Run
 
-## Build and test
-
-`./mvnw` is broken in this checkout — it looks for `.mvn/wrapper/maven-wrapper.properties`
-but the file lives at `wrapper/maven-wrapper.properties`. Use the system `mvn` (3.9.x, Java 25):
+Uses the Maven wrapper; Java 25 required (see `pom.xml` `<java.version>`).
 
 ```bash
-mvn compile                                   # build
-mvn test                                      # all tests
-mvn test -Dtest=CashbackRewardServiceApplicationTests            # one test class
-mvn test -Dtest=CashbackRewardServiceApplicationTests#contextLoads   # one test method
-mvn spring-boot:run                           # run the service
+./mvnw spring-boot:run           # run the app
+./mvnw test                      # run all tests
+./mvnw -Dtest=ClassName test     # run a single test class
+./mvnw -Dtest=ClassName#method test   # run a single test method
+./mvnw clean package             # build the jar
 ```
 
-Java 25, Spring Boot 4.1.1, Lombok (wired via `annotationProcessorPaths` in `pom.xml` —
-new modules need no extra config), H2 in-memory with the H2 console starter, Spring Data JPA,
-Bean Validation, Spring MVC. Test starters are the Boot 4 split ones
-(`spring-boot-starter-{data-jpa,validation,webmvc}-test`), not a single `spring-boot-starter-test`.
+Stack: `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `spring-boot-starter-validation`, H2 (runtime). No explicit datasource config — Spring Boot auto-configures an in-memory H2 via `application.yaml`.
 
-Package root is `com.amrullah.cashback_reward_service` (underscored — the artifact id's
-hyphenated form is not a valid package name).
+## Coding Conventions
 
-## Spec-driven workflow
+### Money
+BigDecimal for ALL monetary values. NEVER float, double, or int.
+Always explicit RoundingMode. Cashback: RoundingMode.DOWN, scale 2.
+BigDecimal.valueOf() or new BigDecimal("...") — NEVER new BigDecimal(double).
 
-`/discover "<user story>"` (`.claude/commands/discover.md`) runs Example Mapping over a user
-story and writes the result to `doc/specs/<feature>.md`. Its rules matter when editing specs
-by hand too:
+### Java 25
+Records for value objects, sealed interfaces, pattern matching.
+No Lombok — records replace it.
 
-- Rules are numbered and each starts with **Should…** or **Must…**.
-- Examples use "The one where…" prose; when inputs vary independently, a markdown table
-  replaces the bullets rather than duplicating them.
-- Counter-examples are valid business boundaries or exclusions, never bugs.
-- A finished spec contains no open questions — questions are resolved with the user first,
-  then folded into the rules.
-- Specs stay in business language: no UI steps, no Gherkin, no Given/When/Then.
+### REST & Spring
+Constructor injection only (no field @Autowired).
+@Valid on request bodies. 201 create, 200 query, 400 validation, 404 not found.
+Domain exceptions for business rule violations. Map to HTTP in controller only.
+Never swallow exceptions or leak infrastructure details.
 
-Existing specs: `doc/specs/cashback.md` (earning, capping, refunds, payout — 12 rules) and
-`doc/specs/view-account-history.md` (10 rules, built on top of it). `view-account-history.md`
-cites cashback rules by number ("Cashback Rule 8"), so renumbering a rule in `cashback.md`
-breaks those references. Shared constraints established there and assumed elsewhere:
-USD only, half-up rounding to the cent, $1.00 minimum spend, $50 monthly cap per account,
-months evaluated in the member's profile timezone, 24-month history retention.
+## Project Structure
+
+domain/ — business logic, models, ports. No Spring imports.
+application/ — use-case orchestration.
+adapter/in/web/ — REST controllers (Spring MVC).
+adapter/out/persistence/ — JPA repositories and entities.
+
+NEVER import adapter classes from domain.
+
+## Development Process
+
+Follow these steps for every feature. Do NOT skip steps.
+
+Step 1: Discovery — Run /discover.
+Propose rules, surface questions with options, let the user decide.
+Save draft spec to docs/specs/.
+STOP. User reviews, edits, and annotates the spec.
+Do NOT proceed if the spec has unresolved questions.
+Re-read the final spec before continuing.
+
+Step 2: Acceptance Test — Write test for the NEXT rule only.
+@Nested = rule, test = example. @SpringBootTest + MockMvc.
+Complete Step 3 until this rule is GREEN before writing the next.
+
+Step 3: TDD (Inner Loop) — RED → GREEN → REFACTOR.
+Write ONE failing test. Minimum code to pass. Refactor.
+Run ALL tests. STOP after each cycle.
+
+Step 4: Review — Verify coverage, boundaries, no AI smells.
+Update CLAUDE.md if new conventions emerged.
+
+## Testing Standards
+
+Acceptance tests live in .../acceptance/, unit tests beside their production code.
+Domain tests: plain JUnit + AssertJ, NO Spring.
+Repository tests: @DataJpaTest.
+Web tests: @WebMvcTest.
+Acceptance tests: @SpringBootTest + MockMvc.
+For money: isEqualByComparingTo("1.60").
+Inline test data per test. No shared fixtures.
+
+## Architecture: Hexagonal (Ports & Adapters)
+Domain (domain/): Pure Java. NO Spring, NO framework dependencies.
+    model/ — entities and value objects
+    service/ — business rules
+Application (application/): port/in/ and port/out/ interfaces.
+    @Service orchestration only — no business logic here.
+Adapters: 
+    adapter/in/web/ — @RestController, DTOs only.
+    adapter/out/persistence/ — JPA repos and entities (NOT in domain).
+
+Domain NEVER imports org.springframework or jakarta.persistence.
+Controllers NEVER contain business logic.
+Dependencies flow inward: adapter → application → domain.
