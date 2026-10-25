@@ -50,7 +50,7 @@ Follow these steps for every feature. Do NOT skip steps.
 
 Step 1: Discovery — Run /discover.
 Propose rules, surface questions with options, let the user decide.
-Save draft spec to docs/specs/.
+Save draft spec to doc/specs/.
 STOP. User reviews, edits, and annotates the spec.
 Do NOT proceed if the spec has unresolved questions.
 Re-read the final spec before continuing.
