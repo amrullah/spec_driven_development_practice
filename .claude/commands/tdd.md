@@ -1,7 +1,7 @@
 ---
-model: claude-sonnet-5.5
+model: sonnet
 description: Run one TDD cycle (RED → GREEN → REFACTOR → CHALLENGE → STOP)
-argument-hint: "<Acceptance Test class or method to drive>"
+argument-hint: "<@Nested Rule class or Example method to drive from an AcceptanceIT class>"
 ---
 
 Run ONE TDD cycle for: $ARGUMENTS
