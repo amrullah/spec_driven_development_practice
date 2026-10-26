@@ -1,6 +1,6 @@
 ---
 description: Write a failing Acceptance Tests for the next spec rule
-argument-hint: "<rule name> @doc/specs/<feature>.md
+argument-hint: "<rule name> @docs/specs/<feature>.md"
 ---
 
 Write a failing acceptance test for: $ARGUMENTS
