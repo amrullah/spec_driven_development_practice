@@ -1,6 +1,7 @@
 package com.amrullah.cashback_reward_service.adapter.in.web;
 
 import com.amrullah.cashback_reward_service.application.port.in.RecordPurchaseUseCase;
+import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -32,12 +34,15 @@ class PurchaseControllerTest {
         given(recordPurchase.record("purchase-1", "customer-1", "merchant-1", new BigDecimal("49.99")))
                 .willReturn(new BigDecimal("0.99"));
 
-        mockMvc.perform(post("/purchases")
+        String response = mockMvc.perform(post("/purchases")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"purchaseId": "purchase-1", "customerId": "customer-1", "merchantId": "merchant-1", "amount": 49.99}"""))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.purchaseId").value("purchase-1"))
-                .andExpect(jsonPath("$.cashbackEarned").value(0.99));
+                .andReturn().getResponse().getContentAsString();
+
+        Object cashbackEarned = JsonPath.read(response, "$.cashbackEarned");
+        assertThat(new BigDecimal(String.valueOf(cashbackEarned))).isEqualByComparingTo("0.99");
     }
 }
